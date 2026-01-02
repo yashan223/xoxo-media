@@ -149,6 +149,9 @@ Downloads\TempPath=${QBIT_DOWNLOAD_DIR}/temp
 WebUI\LocalHostAuth=false
 Connection\PortRangeMin=6881
 Connection\UPnP=false
+Bittorrent\MaxRatio=0
+Bittorrent\MaxRatioAction=1
+Bittorrent\MaxSeedingMinutes=0
 EOF
 
 chown -R ${QBIT_USER}:${QBIT_USER} "${QBIT_CONFIG_DIR}"
