@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Jellyfin & qBittorrent Uninstall Script for Ubuntu VPS
-# This script removes Jellyfin and qBittorrent installations
+# This script removes Jellyfin, qBittorrent, and Nginx configurations
 
 set -e
 
@@ -30,6 +30,7 @@ echo -e "\n${RED}WARNING: This will remove:${NC}"
 echo -e "  - Jellyfin server and configuration"
 echo -e "  - qBittorrent-nox and configuration"
 echo -e "  - qBittorrent user account"
+echo -e "  - Nginx reverse proxy configs (optional)"
 echo -e "\n${YELLOW}NOTE: Media files in ${MEDIA_DIR} will be PRESERVED${NC}"
 read -p "Do you want to continue? (yes/no): " CONFIRM
 
@@ -109,6 +110,37 @@ if command -v ufw &> /dev/null && ufw status | grep -q "Status: active"; then
     echo -e "${GREEN}✓ Firewall rules removed${NC}"
 fi
 
+# Ask about Nginx removal
+NGINX_REMOVED="no"
+if [ -f /etc/nginx/sites-available/jellyfin ] || [ -f /etc/nginx/sites-available/qbittorrent ]; then
+    echo -e "\n${YELLOW}Nginx reverse proxy configuration detected.${NC}"
+    read -p "Do you want to remove Nginx configs for Jellyfin/qBittorrent? (yes/no): " REMOVE_NGINX
+
+    if [ "$REMOVE_NGINX" = "yes" ]; then
+        echo -e "${YELLOW}Removing Nginx configurations...${NC}"
+        rm -f /etc/nginx/sites-enabled/jellyfin
+        rm -f /etc/nginx/sites-enabled/qbittorrent
+        rm -f /etc/nginx/sites-available/jellyfin
+        rm -f /etc/nginx/sites-available/qbittorrent
+        
+        # Reload nginx if it's running
+        if systemctl is-active --quiet nginx; then
+            systemctl reload nginx
+        fi
+        
+        NGINX_REMOVED="yes"
+        echo -e "${GREEN}✓ Nginx configs removed${NC}"
+        
+        # Ask about removing Nginx entirely
+        read -p "Do you want to uninstall Nginx completely? (yes/no): " REMOVE_NGINX_PKG
+        if [ "$REMOVE_NGINX_PKG" = "yes" ]; then
+            systemctl stop nginx 2>/dev/null || true
+            apt-get remove --purge -y nginx certbot python3-certbot-nginx 2>/dev/null || true
+            echo -e "${GREEN}✓ Nginx uninstalled${NC}"
+        fi
+    fi
+fi
+
 echo -e "\n${GREEN}========================================${NC}"
 echo -e "${GREEN}Uninstallation Complete!${NC}"
 echo -e "${GREEN}========================================${NC}"
@@ -117,6 +149,9 @@ echo -e "  ✓ Jellyfin uninstalled"
 echo -e "  ✓ qBittorrent-nox uninstalled"
 echo -e "  ✓ System services removed"
 echo -e "  ✓ User '${QBIT_USER}' removed"
+if [ "$NGINX_REMOVED" = "yes" ]; then
+    echo -e "  ✓ Nginx configs removed"
+fi
 
 if [ "$REMOVE_MEDIA" = "yes" ]; then
     echo -e "  ✓ Media directory removed"
