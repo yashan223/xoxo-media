@@ -8,6 +8,12 @@ Automated setup for Jellyfin + qBittorrent on Ubuntu VPS.
 sudo bash install.sh
 ```
 
+## Reverse Proxy + SSL (Optional)
+
+```bash
+sudo bash setup-nginx.sh
+```
+
 ## Uninstall
 
 ```bash
@@ -23,7 +29,6 @@ sudo bash uninstall.sh
 
 ## Directories
 
-- Media: `/var/media/jellyfin`
 - Downloads: `/var/media/jellyfin/downloads`
 - Movies: `/var/media/jellyfin/movies`
 - TV Shows: `/var/media/jellyfin/tv-shows`
