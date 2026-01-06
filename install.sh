@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Jellyfin & qBittorrent Auto-Install Script for Ubuntu VPS
-# This script installs Jellyfin and qBittorrent with shared media directory
+# Jellyfin, qBittorrent & FileBrowser Auto-Install Script for Ubuntu VPS
+# This script installs Jellyfin, qBittorrent and FileBrowser with shared media directory
 
 set -e
 
@@ -17,9 +17,11 @@ QBIT_DOWNLOAD_DIR="${MEDIA_DIR}/downloads"
 QBIT_USER="qbittorrent"
 QBIT_PORT=8080
 JELLYFIN_PORT=8096
+FILEBROWSER_PORT=8585
+FILEBROWSER_USER="filebrowser"
 
 echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}Jellyfin & qBittorrent Installation${NC}"
+echo -e "${GREEN}Jellyfin, qBittorrent & FileBrowser${NC}"
 echo -e "${GREEN}========================================${NC}"
 
 # Check if running as root
@@ -40,18 +42,18 @@ wait_for_apt() {
 }
 
 # Update system
-echo -e "\n${YELLOW}[1/7] Updating system packages...${NC}"
+echo -e "\n${YELLOW}[1/8] Updating system packages...${NC}"
 wait_for_apt
 apt-get update
 apt-get upgrade -y
 
 # Install dependencies
 wait_for_apt
-echo -e "\n${YELLOW}[2/7] Installing dependencies...${NC}"
+echo -e "\n${YELLOW}[2/8] Installing dependencies...${NC}"
 apt-get install -y curl gnupg software-properties-common apt-transport-https
 
 # Install Jellyfin
-echo -e "\n${YELLOW}[3/7] Installing Jellyfin...${NC}"
+echo -e "\n${YELLOW}[3/8] Installing Jellyfin...${NC}"
 
 # Add Jellyfin repository
 curl -fsSL https://repo.jellyfin.org/ubuntu/jellyfin_team.gpg.key | gpg --dearmor -o /etc/apt/trusted.gpg.d/jellyfin.gpg
@@ -71,7 +73,7 @@ echo -e "${GREEN}✓ Jellyfin installed successfully${NC}"
 wait_for_apt
 add-apt-repository -y ppa:qbittorrent-team/qbittorrent-stable
 wait_for_apt
-echo -e "\n${YELLOW}[4/7] Installing qBittorrent-nox...${NC}"
+echo -e "\n${YELLOW}[4/8] Installing qBittorrent-nox...${NC}"
 add-apt-repository -y ppa:qbittorrent-team/qbittorrent-stable
 apt-get update
 apt-get install -y qbittorrent-nox
@@ -79,7 +81,7 @@ apt-get install -y qbittorrent-nox
 echo -e "${GREEN}✓ qBittorrent-nox installed successfully${NC}"
 
 # Create media directories
-echo -e "\n${YELLOW}[5/7] Creating media directories...${NC}"
+echo -e "\n${YELLOW}[5/8] Creating media directories...${NC}"
 mkdir -p "${MEDIA_DIR}"
 mkdir -p "${QBIT_DOWNLOAD_DIR}"
 mkdir -p "${MEDIA_DIR}/movies"
@@ -87,7 +89,7 @@ mkdir -p "${MEDIA_DIR}/tv-shows"
 mkdir -p "${MEDIA_DIR}/music"
 
 # Create qBittorrent user
-echo -e "\n${YELLOW}[6/7] Configuring qBittorrent...${NC}"
+echo -e "\n${YELLOW}[6/8] Configuring qBittorrent...${NC}"
 if ! id "${QBIT_USER}" &>/dev/null; then
     # Check if group exists
     if getent group "${QBIT_USER}" &>/dev/null; then
@@ -157,18 +159,68 @@ EOF
 chown -R ${QBIT_USER}:${QBIT_USER} "${QBIT_CONFIG_DIR}"
 
 # Enable and start services
-echo -e "\n${YELLOW}[7/7] Starting services...${NC}"
+echo -e "\n${YELLOW}[7/8] Starting qBittorrent...${NC}"
 systemctl unmask qbittorrent-nox 2>/dev/null || true
 systemctl enable qbittorrent-nox
 systemctl start qbittorrent-nox
 
 echo -e "${GREEN}✓ qBittorrent configured and started${NC}"
 
+# Install FileBrowser
+echo -e "\n${YELLOW}[8/8] Installing FileBrowser...${NC}"
+curl -fsSL https://raw.githubusercontent.com/filebrowser/get/master/get.sh | bash
+
+# Create FileBrowser user
+if ! id "${FILEBROWSER_USER}" &>/dev/null; then
+    useradd -r -s /usr/sbin/nologin "${FILEBROWSER_USER}"
+fi
+
+# Add filebrowser to qbittorrent group for file access
+usermod -a -G ${QBIT_USER} ${FILEBROWSER_USER} 2>/dev/null || true
+
+# Create config directory
+mkdir -p /var/lib/filebrowser
+
+# Create FileBrowser database and config
+filebrowser config init -d /var/lib/filebrowser/filebrowser.db 2>/dev/null || true
+filebrowser config set -d /var/lib/filebrowser/filebrowser.db --address 0.0.0.0
+filebrowser config set -d /var/lib/filebrowser/filebrowser.db --port ${FILEBROWSER_PORT}
+filebrowser config set -d /var/lib/filebrowser/filebrowser.db --root ${QBIT_DOWNLOAD_DIR}
+filebrowser users add admin admin --perm.admin -d /var/lib/filebrowser/filebrowser.db 2>/dev/null || true
+
+# Set permissions
+chown -R ${FILEBROWSER_USER}:${FILEBROWSER_USER} /var/lib/filebrowser
+
+# Create FileBrowser systemd service
+cat > /etc/systemd/system/filebrowser.service <<EOF
+[Unit]
+Description=FileBrowser
+After=network.target
+
+[Service]
+Type=simple
+User=${FILEBROWSER_USER}
+Group=${FILEBROWSER_USER}
+ExecStart=/usr/local/bin/filebrowser -d /var/lib/filebrowser/filebrowser.db
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable filebrowser
+systemctl start filebrowser
+
+echo -e "${GREEN}✓ FileBrowser installed and started${NC}"
+
 # Configure firewall if UFW is active
 if command -v ufw &> /dev/null && ufw status | grep -q "Status: active"; then
     echo -e "\n${YELLOW}Configuring firewall...${NC}"
     ufw allow ${JELLYFIN_PORT}/tcp
     ufw allow ${QBIT_PORT}/tcp
+    ufw allow ${FILEBROWSER_PORT}/tcp
     ufw allow 6881:6889/tcp
     ufw allow 6881:6889/udp
 fi
@@ -189,17 +241,20 @@ echo -e "\n${YELLOW}qBittorrent:${NC}"
 echo -e "  URL: http://${SERVER_IP}:${QBIT_PORT}"
 echo -e "  Username: admin"
 echo -e "  Password: adminadmin"
+echo -e "\n${YELLOW}FileBrowser:${NC}"
+echo -e "  URL: http://${SERVER_IP}:${FILEBROWSER_PORT}"
+echo -e "  Username: admin"
+echo -e "  Password: admin"
 echo -e "\n${YELLOW}Next Steps:${NC}"
 echo -e "1. Access Jellyfin and complete setup wizard"
 echo -e "2. Add media libraries in Jellyfin:"
 echo -e "   - Movies: ${MEDIA_DIR}/movies"
 echo -e "   - TV Shows: ${MEDIA_DIR}/tv-shows"
 echo -e "   - Music: ${MEDIA_DIR}/music"
-echo -e "3. Access qBittorrent and change the default password"
+echo -e "3. Change default passwords for qBittorrent and FileBrowser"
 echo -e "4. Downloaded files will appear in: ${QBIT_DOWNLOAD_DIR}"
 echo -e "\n${YELLOW}Service Commands:${NC}"
 echo -e "  systemctl status jellyfin"
 echo -e "  systemctl status qbittorrent-nox"
-echo -e "  systemctl restart jellyfin"
-echo -e "  systemctl restart qbittorrent-nox"
+echo -e "  systemctl status filebrowser"
 echo -e "\n${GREEN}========================================${NC}"

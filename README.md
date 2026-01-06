@@ -1,44 +1,48 @@
-# Jellyfin & qBittorrent Media Server
+# Media Server Stack
 
-Automated setup for Jellyfin + qBittorrent on Ubuntu VPS.
+Automated setup for **Jellyfin + qBittorrent + FileBrowser** on Ubuntu VPS.
 
-## Installation
+## Quick Start
 
 ```bash
+# Install everything
 sudo bash install.sh
-```
 
-## Reverse Proxy + SSL (Optional)
-
-```bash
+# Setup SSL (optional)
 sudo bash setup-nginx.sh
-```
 
-## Uninstall
-
-```bash
+# Uninstall
 sudo bash uninstall.sh
 ```
 
-## Access
+## Services
 
-- **Jellyfin**: `http://YOUR_SERVER_IP:8096`
-- **qBittorrent**: `http://YOUR_SERVER_IP:8080`
-  - Username: `admin`
-  - Password: `adminadmin`
+| Service | Port | Username | Password |
+|---------|------|----------|----------|
+| Jellyfin | 8096 | (setup wizard) | - |
+| qBittorrent | 8080 | admin | adminadmin |
+| FileBrowser | 8585 | admin | admin |
+
+**Access:** `http://YOUR_SERVER_IP:PORT`
 
 ## Directories
 
-- Downloads: `/var/media/jellyfin/downloads`
-- Movies: `/var/media/jellyfin/movies`
-- TV Shows: `/var/media/jellyfin/tv-shows`
-- Music: `/var/media/jellyfin/music`
+```
+/var/media/jellyfin/
+├── downloads/    # qBittorrent downloads
+├── movies/
+├── tv-shows/
+└── music/
+```
 
-## Service Commands
+## Commands
 
 ```bash
-systemctl status jellyfin
-systemctl status qbittorrent-nox
+# Status
+systemctl status jellyfin qbittorrent-nox filebrowser
+
+# Restart
 systemctl restart jellyfin
 systemctl restart qbittorrent-nox
+systemctl restart filebrowser
 ```

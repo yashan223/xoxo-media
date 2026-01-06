@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Jellyfin & qBittorrent Uninstall Script for Ubuntu VPS
-# This script removes Jellyfin, qBittorrent, and Nginx configurations
+# Media Server Uninstall Script for Ubuntu VPS
+# Removes Jellyfin, qBittorrent, FileBrowser, and Nginx configurations
 
 set -e
 
@@ -14,9 +14,10 @@ NC='\033[0m' # No Color
 # Configuration
 MEDIA_DIR="/var/media/jellyfin"
 QBIT_USER="qbittorrent"
+FILEBROWSER_USER="filebrowser"
 
 echo -e "${GREEN}========================================${NC}"
-echo -e "${GREEN}Jellyfin & qBittorrent Uninstallation${NC}"
+echo -e "${GREEN}Media Server Uninstallation${NC}"
 echo -e "${GREEN}========================================${NC}"
 
 # Check if running as root
@@ -29,7 +30,7 @@ fi
 echo -e "\n${RED}WARNING: This will remove:${NC}"
 echo -e "  - Jellyfin server and configuration"
 echo -e "  - qBittorrent-nox and configuration"
-echo -e "  - qBittorrent user account"
+echo -e "  - FileBrowser (if installed)"
 echo -e "  - Nginx reverse proxy configs (optional)"
 echo -e "\n${YELLOW}NOTE: Media files in ${MEDIA_DIR} will be PRESERVED${NC}"
 read -p "Do you want to continue? (yes/no): " CONFIRM
@@ -40,40 +41,57 @@ if [ "$CONFIRM" != "yes" ]; then
 fi
 
 # Stop services
-echo -e "\n${YELLOW}[1/6] Stopping services...${NC}"
+echo -e "\n${YELLOW}[1/7] Stopping services...${NC}"
 systemctl unmask qbittorrent-nox 2>/dev/null || true
 systemctl unmask jellyfin 2>/dev/null || true
 systemctl stop qbittorrent-nox 2>/dev/null || true
 systemctl stop jellyfin 2>/dev/null || true
+systemctl stop filebrowser 2>/dev/null || true
 systemctl disable qbittorrent-nox 2>/dev/null || true
 systemctl disable jellyfin 2>/dev/null || true
+systemctl disable filebrowser 2>/dev/null || true
 
 echo -e "${GREEN}✓ Services stopped${NC}"
 
 # Remove qBittorrent
-echo -e "\n${YELLOW}[2/6] Removing qBittorrent...${NC}"
+echo -e "\n${YELLOW}[2/7] Removing qBittorrent...${NC}"
 apt-get remove --purge -y qbittorrent-nox 2>/dev/null || true
 add-apt-repository -y --remove ppa:qbittorrent-team/qbittorrent-stable 2>/dev/null || true
 
 echo -e "${GREEN}✓ qBittorrent removed${NC}"
 
 # Remove Jellyfin
-echo -e "\n${YELLOW}[3/6] Removing Jellyfin...${NC}"
+echo -e "\n${YELLOW}[3/7] Removing Jellyfin...${NC}"
 apt-get remove --purge -y jellyfin 2>/dev/null || true
 rm -f /etc/apt/sources.list.d/jellyfin.list
 rm -f /etc/apt/trusted.gpg.d/jellyfin.gpg
 
 echo -e "${GREEN}✓ Jellyfin removed${NC}"
 
+# Remove FileBrowser
+echo -e "\n${YELLOW}[4/7] Removing FileBrowser...${NC}"
+if [ -f /usr/local/bin/filebrowser ]; then
+    rm -f /usr/local/bin/filebrowser
+    rm -rf /var/lib/filebrowser
+    rm -rf /etc/filebrowser
+    rm -f /etc/systemd/system/filebrowser.service
+    if id "${FILEBROWSER_USER}" &>/dev/null; then
+        userdel "${FILEBROWSER_USER}" 2>/dev/null || true
+    fi
+    echo -e "${GREEN}✓ FileBrowser removed${NC}"
+else
+    echo -e "${YELLOW}FileBrowser not found, skipping${NC}"
+fi
+
 # Remove systemd service file
-echo -e "\n${YELLOW}[4/6] Removing systemd service files...${NC}"
+echo -e "\n${YELLOW}[5/7] Removing systemd service files...${NC}"
 rm -f /etc/systemd/system/qbittorrent-nox.service
 systemctl daemon-reload
 
 echo -e "${GREEN}✓ Service files removed${NC}"
 
 # Remove qBittorrent user
-echo -e "\n${YELLOW}[5/6] Removing qBittorrent user...${NC}"
+echo -e "\n${YELLOW}[6/7] Removing qBittorrent user...${NC}"
 if id "${QBIT_USER}" &>/dev/null; then
     userdel -r "${QBIT_USER}" 2>/dev/null || true
     echo -e "${GREEN}✓ User '${QBIT_USER}' removed${NC}"
@@ -82,7 +100,7 @@ else
 fi
 
 # Clean up apt
-echo -e "\n${YELLOW}[6/6] Cleaning up...${NC}"
+echo -e "\n${YELLOW}[7/7] Cleaning up...${NC}"
 apt-get autoremove -y
 apt-get autoclean
 
@@ -105,6 +123,7 @@ if command -v ufw &> /dev/null && ufw status | grep -q "Status: active"; then
     echo -e "\n${YELLOW}Removing firewall rules...${NC}"
     ufw delete allow 8096/tcp 2>/dev/null || true
     ufw delete allow 8080/tcp 2>/dev/null || true
+    ufw delete allow 8585/tcp 2>/dev/null || true
     ufw delete allow 6881:6889/tcp 2>/dev/null || true
     ufw delete allow 6881:6889/udp 2>/dev/null || true
     echo -e "${GREEN}✓ Firewall rules removed${NC}"
@@ -112,16 +131,18 @@ fi
 
 # Ask about Nginx removal
 NGINX_REMOVED="no"
-if [ -f /etc/nginx/sites-available/jellyfin ] || [ -f /etc/nginx/sites-available/qbittorrent ]; then
+if [ -f /etc/nginx/sites-available/jellyfin ] || [ -f /etc/nginx/sites-available/qbittorrent ] || [ -f /etc/nginx/sites-available/filebrowser ]; then
     echo -e "\n${YELLOW}Nginx reverse proxy configuration detected.${NC}"
-    read -p "Do you want to remove Nginx configs for Jellyfin/qBittorrent? (yes/no): " REMOVE_NGINX
+    read -p "Do you want to remove Nginx configs? (yes/no): " REMOVE_NGINX
 
     if [ "$REMOVE_NGINX" = "yes" ]; then
         echo -e "${YELLOW}Removing Nginx configurations...${NC}"
         rm -f /etc/nginx/sites-enabled/jellyfin
         rm -f /etc/nginx/sites-enabled/qbittorrent
+        rm -f /etc/nginx/sites-enabled/filebrowser
         rm -f /etc/nginx/sites-available/jellyfin
         rm -f /etc/nginx/sites-available/qbittorrent
+        rm -f /etc/nginx/sites-available/filebrowser
         
         # Reload nginx if it's running
         if systemctl is-active --quiet nginx; then
@@ -147,8 +168,9 @@ echo -e "${GREEN}========================================${NC}"
 echo -e "\n${YELLOW}Summary:${NC}"
 echo -e "  ✓ Jellyfin uninstalled"
 echo -e "  ✓ qBittorrent-nox uninstalled"
+echo -e "  ✓ FileBrowser uninstalled"
 echo -e "  ✓ System services removed"
-echo -e "  ✓ User '${QBIT_USER}' removed"
+echo -e "  ✓ Users removed"
 if [ "$NGINX_REMOVED" = "yes" ]; then
     echo -e "  ✓ Nginx configs removed"
 fi
