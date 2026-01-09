@@ -13,8 +13,8 @@ NC='\033[0m' # No Color
 
 # Configuration
 MEDIA_DIR="/var/media/jellyfin"
-QBIT_USER="qbittorrent"
-FILEBROWSER_USER="filebrowser"
+MEDIA_USER="media"
+MEDIA_GROUP="media"
 
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}Media Server Uninstallation${NC}"
@@ -75,9 +75,6 @@ if [ -f /usr/local/bin/filebrowser ]; then
     rm -rf /var/lib/filebrowser
     rm -rf /etc/filebrowser
     rm -f /etc/systemd/system/filebrowser.service
-    if id "${FILEBROWSER_USER}" &>/dev/null; then
-        userdel "${FILEBROWSER_USER}" 2>/dev/null || true
-    fi
     echo -e "${GREEN}✓ FileBrowser removed${NC}"
 else
     echo -e "${YELLOW}FileBrowser not found, skipping${NC}"
@@ -90,13 +87,17 @@ systemctl daemon-reload
 
 echo -e "${GREEN}✓ Service files removed${NC}"
 
-# Remove qBittorrent user
-echo -e "\n${YELLOW}[6/7] Removing qBittorrent user...${NC}"
-if id "${QBIT_USER}" &>/dev/null; then
-    userdel -r "${QBIT_USER}" 2>/dev/null || true
-    echo -e "${GREEN}✓ User '${QBIT_USER}' removed${NC}"
+# Remove media user
+echo -e "\n${YELLOW}[6/7] Removing media user...${NC}"
+if id "${MEDIA_USER}" &>/dev/null; then
+    userdel -r "${MEDIA_USER}" 2>/dev/null || true
+    echo -e "${GREEN}✓ User '${MEDIA_USER}' removed${NC}"
 else
-    echo -e "${YELLOW}User '${QBIT_USER}' not found, skipping${NC}"
+    echo -e "${YELLOW}User '${MEDIA_USER}' not found, skipping${NC}"
+fi
+if getent group "${MEDIA_GROUP}" &>/dev/null; then
+    groupdel "${MEDIA_GROUP}" 2>/dev/null || true
+    echo -e "${GREEN}✓ Group '${MEDIA_GROUP}' removed${NC}"
 fi
 
 # Clean up apt

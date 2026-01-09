@@ -14,11 +14,11 @@ NC='\033[0m' # No Color
 # Configuration
 MEDIA_DIR="/var/media/jellyfin"
 QBIT_DOWNLOAD_DIR="${MEDIA_DIR}/downloads"
-QBIT_USER="qbittorrent"
+MEDIA_USER="media"
+MEDIA_GROUP="media"
 QBIT_PORT=8080
 JELLYFIN_PORT=8096
 FILEBROWSER_PORT=8585
-FILEBROWSER_USER="filebrowser"
 
 echo -e "${GREEN}========================================${NC}"
 echo -e "${GREEN}Jellyfin, qBittorrent & FileBrowser${NC}"
@@ -88,29 +88,29 @@ mkdir -p "${MEDIA_DIR}/movies"
 mkdir -p "${MEDIA_DIR}/tv-shows"
 mkdir -p "${MEDIA_DIR}/music"
 
-# Create qBittorrent user
-echo -e "\n${YELLOW}[6/8] Configuring qBittorrent...${NC}"
-if ! id "${QBIT_USER}" &>/dev/null; then
-    # Check if group exists
-    if getent group "${QBIT_USER}" &>/dev/null; then
-        useradd -r -m -d /home/${QBIT_USER} -s /usr/sbin/nologin -g "${QBIT_USER}" "${QBIT_USER}"
-    else
-        useradd -r -m -d /home/${QBIT_USER} -s /usr/sbin/nologin "${QBIT_USER}"
-    fi
-    echo -e "${GREEN}✓ User '${QBIT_USER}' created${NC}"
-else
-    echo -e "${YELLOW}User '${QBIT_USER}' already exists, skipping creation${NC}"
+# Create shared media user and group for all services
+echo -e "\n${YELLOW}[6/8] Configuring shared media user...${NC}"
+if ! getent group "${MEDIA_GROUP}" &>/dev/null; then
+    groupadd "${MEDIA_GROUP}"
+    echo -e "${GREEN}✓ Group '${MEDIA_GROUP}' created${NC}"
 fi
 
-# Set permissions
-chown -R ${QBIT_USER}:${QBIT_USER} "${MEDIA_DIR}"
+if ! id "${MEDIA_USER}" &>/dev/null; then
+    useradd -r -m -d /home/${MEDIA_USER} -s /usr/sbin/nologin -g "${MEDIA_GROUP}" "${MEDIA_USER}"
+    echo -e "${GREEN}✓ User '${MEDIA_USER}' created${NC}"
+else
+    echo -e "${YELLOW}User '${MEDIA_USER}' already exists${NC}"
+fi
+
+# Add jellyfin user to media group
+usermod -a -G ${MEDIA_GROUP} jellyfin
+
+# Set permissions - media user owns everything, group has full access
+chown -R ${MEDIA_USER}:${MEDIA_GROUP} "${MEDIA_DIR}"
 chmod -R 775 "${MEDIA_DIR}"
 
-# Add jellyfin user to qbittorrent group
-usermod -a -G ${QBIT_USER} jellyfin
-
-# Create qBittorrent config directory first
-QBIT_CONFIG_DIR="/home/${QBIT_USER}/.config/qBittorrent"
+# Create qBittorrent config directory
+QBIT_CONFIG_DIR="/home/${MEDIA_USER}/.config/qBittorrent"
 mkdir -p "${QBIT_CONFIG_DIR}"
 
 # Create qBittorrent systemd service
@@ -121,8 +121,8 @@ After=network.target
 
 [Service]
 Type=simple
-User=${QBIT_USER}
-Group=${QBIT_USER}
+User=${MEDIA_USER}
+Group=${MEDIA_GROUP}
 UMask=002
 ExecStart=/usr/bin/qbittorrent-nox --webui-port=${QBIT_PORT}
 Restart=on-failure
@@ -156,7 +156,7 @@ Bittorrent\MaxRatioAction=1
 Bittorrent\MaxSeedingMinutes=0
 EOF
 
-chown -R ${QBIT_USER}:${QBIT_USER} "${QBIT_CONFIG_DIR}"
+chown -R ${MEDIA_USER}:${MEDIA_GROUP} "${QBIT_CONFIG_DIR}"
 
 # Enable and start services
 echo -e "\n${YELLOW}[7/8] Starting qBittorrent...${NC}"
@@ -170,14 +170,6 @@ echo -e "${GREEN}✓ qBittorrent configured and started${NC}"
 echo -e "\n${YELLOW}[8/8] Installing FileBrowser...${NC}"
 curl -fsSL https://raw.githubusercontent.com/filebrowser/get/master/get.sh | bash
 
-# Create FileBrowser user
-if ! id "${FILEBROWSER_USER}" &>/dev/null; then
-    useradd -r -s /usr/sbin/nologin "${FILEBROWSER_USER}"
-fi
-
-# Add filebrowser to qbittorrent group for file access
-usermod -a -G ${QBIT_USER} ${FILEBROWSER_USER} 2>/dev/null || true
-
 # Create config directory
 mkdir -p /var/lib/filebrowser
 
@@ -189,8 +181,8 @@ filebrowser config set -d /var/lib/filebrowser/filebrowser.db --port ${FILEBROWS
 filebrowser config set -d /var/lib/filebrowser/filebrowser.db --root ${QBIT_DOWNLOAD_DIR}
 filebrowser users add admin adminadmin12 --perm.admin -d /var/lib/filebrowser/filebrowser.db
 
-# Set permissions
-chown -R ${FILEBROWSER_USER}:${FILEBROWSER_USER} /var/lib/filebrowser
+# Set permissions - FileBrowser config owned by media user
+chown -R ${MEDIA_USER}:${MEDIA_GROUP} /var/lib/filebrowser
 
 # Create FileBrowser systemd service
 cat > /etc/systemd/system/filebrowser.service <<EOF
@@ -200,8 +192,8 @@ After=network.target
 
 [Service]
 Type=simple
-User=${FILEBROWSER_USER}
-Group=${FILEBROWSER_USER}
+User=${MEDIA_USER}
+Group=${MEDIA_GROUP}
 ExecStart=/usr/local/bin/filebrowser -d /var/lib/filebrowser/filebrowser.db
 Restart=on-failure
 RestartSec=5
