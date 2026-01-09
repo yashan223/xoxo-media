@@ -150,8 +150,8 @@ fi
 # Test nginx config
 nginx -t
 
-# Reload nginx
-systemctl reload nginx
+# Start/restart nginx
+systemctl restart nginx
 
 echo -e "${GREEN}✓ Nginx configured${NC}"
 
