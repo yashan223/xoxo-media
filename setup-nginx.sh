@@ -163,7 +163,7 @@ DOMAINS=""
 
 # Setup SSL with Certbot
 echo -e "\n${YELLOW}[5/5] Setting up SSL certificates...${NC}"
-certbot --nginx $DOMAINS --non-interactive --agree-tos -m ${SSL_EMAIL}
+certbot --nginx $DOMAINS --non-interactive --agree-tos --expand -m ${SSL_EMAIL}
 
 # Enable auto-renewal
 systemctl enable certbot.timer
