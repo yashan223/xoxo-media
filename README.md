@@ -21,7 +21,7 @@ sudo bash uninstall.sh
 |---------|------|----------|----------|
 | Jellyfin | 8096 | (setup wizard) | - |
 | qBittorrent | 8080 | admin | adminadmin |
-| FileBrowser | 8585 | admin | admin |
+| FileBrowser | 8585 | admin | adminadmin12 |
 
 **Access:** `http://YOUR_SERVER_IP:PORT`
 

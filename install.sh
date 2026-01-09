@@ -187,7 +187,7 @@ filebrowser config init -d /var/lib/filebrowser/filebrowser.db
 filebrowser config set -d /var/lib/filebrowser/filebrowser.db --address 0.0.0.0
 filebrowser config set -d /var/lib/filebrowser/filebrowser.db --port ${FILEBROWSER_PORT}
 filebrowser config set -d /var/lib/filebrowser/filebrowser.db --root ${QBIT_DOWNLOAD_DIR}
-filebrowser users add admin admin --perm.admin -d /var/lib/filebrowser/filebrowser.db
+filebrowser users add admin adminadmin12 --perm.admin -d /var/lib/filebrowser/filebrowser.db
 
 # Set permissions
 chown -R ${FILEBROWSER_USER}:${FILEBROWSER_USER} /var/lib/filebrowser
@@ -245,7 +245,7 @@ echo -e "  Password: adminadmin"
 echo -e "\n${YELLOW}FileBrowser:${NC}"
 echo -e "  URL: http://${SERVER_IP}:${FILEBROWSER_PORT}"
 echo -e "  Username: admin"
-echo -e "  Password: admin"
+echo -e "  Password: adminadmin12"
 echo -e "\n${YELLOW}Next Steps:${NC}"
 echo -e "1. Access Jellyfin and complete setup wizard"
 echo -e "2. Add media libraries in Jellyfin:"
