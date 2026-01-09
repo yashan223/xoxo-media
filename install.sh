@@ -181,12 +181,13 @@ usermod -a -G ${QBIT_USER} ${FILEBROWSER_USER} 2>/dev/null || true
 # Create config directory
 mkdir -p /var/lib/filebrowser
 
-# Create FileBrowser database and config
-filebrowser config init -d /var/lib/filebrowser/filebrowser.db 2>/dev/null || true
+# Create FileBrowser database and config (remove old db to ensure fresh credentials)
+rm -f /var/lib/filebrowser/filebrowser.db
+filebrowser config init -d /var/lib/filebrowser/filebrowser.db
 filebrowser config set -d /var/lib/filebrowser/filebrowser.db --address 0.0.0.0
 filebrowser config set -d /var/lib/filebrowser/filebrowser.db --port ${FILEBROWSER_PORT}
 filebrowser config set -d /var/lib/filebrowser/filebrowser.db --root ${QBIT_DOWNLOAD_DIR}
-filebrowser users add admin admin --perm.admin -d /var/lib/filebrowser/filebrowser.db 2>/dev/null || true
+filebrowser users add admin admin --perm.admin -d /var/lib/filebrowser/filebrowser.db
 
 # Set permissions
 chown -R ${FILEBROWSER_USER}:${FILEBROWSER_USER} /var/lib/filebrowser
