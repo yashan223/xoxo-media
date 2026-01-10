@@ -109,6 +109,10 @@ usermod -a -G ${MEDIA_GROUP} jellyfin
 chown -R ${MEDIA_USER}:${MEDIA_GROUP} "${MEDIA_DIR}"
 chmod -R 775 "${MEDIA_DIR}"
 
+# Set stricter permissions for downloads directory
+chown -R ${MEDIA_USER}:${MEDIA_GROUP} "${QBIT_DOWNLOAD_DIR}"
+chmod -R 770 "${QBIT_DOWNLOAD_DIR}"
+
 # Create qBittorrent config directory
 QBIT_CONFIG_DIR="/home/${MEDIA_USER}/.config/qBittorrent"
 mkdir -p "${QBIT_CONFIG_DIR}"
