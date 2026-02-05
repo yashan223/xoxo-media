@@ -1,40 +1,52 @@
-# Media Server Stack
+# XOXO Media Server Stack
 
 Automated setup for **Jellyfin + qBittorrent + FileBrowser** on Ubuntu VPS.
 
-## Quick Install
+---
+
+## Installation
 
 ```bash
-# Install
-curl -fsSL https://raw.githubusercontent.com/yashan223/xoxo-media/master/install.sh | sudo bash
-
-# SSL setup
-curl -fsSL https://raw.githubusercontent.com/yashan223/xoxo-media/master/setup-nginx.sh | sudo bash
-
-# Uninstall
-curl -fsSL https://raw.githubusercontent.com/yashan223/xoxo-media/master/uninstall.sh | sudo bash
+git clone https://github.com/yashan223/xoxo-media.git
+cd xoxo-media
+sudo bash install.sh
 ```
+
+## SSL Setup (Optional)
+
+```bash
+sudo bash setup-nginx.sh
+```
+
+## Uninstall
+
+```bash
+sudo bash uninstall.sh
+```
+
+---
 
 ## Services
 
-| Service | Port | Username | Password |
-|---------|------|----------|----------|
-| Jellyfin | 8096 | (setup wizard) | - |
-| qBittorrent | 8080 | admin | adminadmin |
-| FileBrowser | 8585 | admin | adminadmin12 |
+| Service | Port | Default Credentials |
+|---------|:----:|---------------------|
+| Jellyfin | 8096 | Setup wizard |
+| qBittorrent | 8080 | admin / adminadmin |
+| FileBrowser | 8585 | admin / adminadmin12 |
 
+---
 
-## Directories
-
-All services share a single `media` user/group for seamless file access.
+## Directory Structure
 
 ```
 /var/media/jellyfin/
-├── downloads/   
+├── downloads/
 ├── movies/
 ├── tv-shows/
 └── music/
 ```
+
+---
 
 ## Commands
 
@@ -43,8 +55,18 @@ All services share a single `media` user/group for seamless file access.
 systemctl status jellyfin qbittorrent-nox filebrowser
 
 # Restart
-systemctl restart jellyfin
-systemctl restart qbittorrent-nox
-systemctl restart filebrowser
+sudo systemctl restart jellyfin
+sudo systemctl restart qbittorrent-nox
+sudo systemctl restart filebrowser
 
+# Logs
+journalctl -u jellyfin -f
 ```
+
+---
+
+## Requirements
+
+- Ubuntu 20.04+
+- Root access
+- Ports: 8096, 8080, 8585
