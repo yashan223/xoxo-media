@@ -48,13 +48,16 @@ wait_for_apt() {
 # Update system
 echo -e "\n${YELLOW}[1/8] Updating system packages...${NC}"
 wait_for_apt
-apt-get update
+apt-get update --fix-missing
 apt-get -o Dpkg::Options::="--force-confold" upgrade -y
 
 # Install dependencies
 wait_for_apt
 echo -e "\n${YELLOW}[2/8] Installing dependencies...${NC}"
-apt-get -o Dpkg::Options::="--force-confold" install -y curl gnupg software-properties-common apt-transport-https
+# Install basic dependencies first (available on minimal systems)
+apt-get -o Dpkg::Options::="--force-confold" install -y ca-certificates curl gnupg
+# Then install additional tools (may not exist on all systems, so allow failure)
+apt-get -o Dpkg::Options::="--force-confold" install -y software-properties-common apt-transport-https || true
 
 # Install Jellyfin
 echo -e "\n${YELLOW}[3/8] Installing Jellyfin...${NC}"
