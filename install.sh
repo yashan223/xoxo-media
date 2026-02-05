@@ -5,6 +5,10 @@
 
 set -e
 
+# Make apt non-interactive to avoid prompts during package installation
+export DEBIAN_FRONTEND=noninteractive
+export APT_LISTCHANGES_FRONTEND=none
+
 # Colors for output
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -45,12 +49,12 @@ wait_for_apt() {
 echo -e "\n${YELLOW}[1/8] Updating system packages...${NC}"
 wait_for_apt
 apt-get update
-apt-get upgrade -y
+apt-get -o Dpkg::Options::="--force-confold" upgrade -y
 
 # Install dependencies
 wait_for_apt
 echo -e "\n${YELLOW}[2/8] Installing dependencies...${NC}"
-apt-get install -y curl gnupg software-properties-common apt-transport-https
+apt-get -o Dpkg::Options::="--force-confold" install -y curl gnupg software-properties-common apt-transport-https
 
 # Install Jellyfin
 echo -e "\n${YELLOW}[3/8] Installing Jellyfin...${NC}"
@@ -61,7 +65,7 @@ echo "deb [arch=$( dpkg --print-architecture )] https://repo.jellyfin.org/ubuntu
 wait_for_apt
 
 apt-get update
-apt-get install -y jellyfin
+apt-get -o Dpkg::Options::="--force-confold" install -y jellyfin
 
 # Unmask, start and enable Jellyfin
 systemctl unmask jellyfin 2>/dev/null || true
@@ -76,7 +80,7 @@ wait_for_apt
 echo -e "\n${YELLOW}[4/8] Installing qBittorrent-nox...${NC}"
 add-apt-repository -y ppa:qbittorrent-team/qbittorrent-stable
 apt-get update
-apt-get install -y qbittorrent-nox
+apt-get -o Dpkg::Options::="--force-confold" install -y qbittorrent-nox
 
 echo -e "${GREEN}✓ qBittorrent-nox installed successfully${NC}"
 
