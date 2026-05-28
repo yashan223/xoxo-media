@@ -29,7 +29,6 @@ fi
 
 echo -e "\n${YELLOW}[1/2] Stopping and removing containers...${NC}"
 docker compose -f "${SCRIPT_DIR}/docker-compose.yml" down
-
 echo -e "${GREEN}✓ Containers removed${NC}"
 
 read -p "Also delete all volumes (config, databases, SSL certs)? THIS IS IRREVERSIBLE (yes/no): " REMOVE_VOLUMES

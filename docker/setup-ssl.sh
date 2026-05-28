@@ -35,18 +35,15 @@ mkdir -p "${NGINX_CONFD}"
 
 COMPOSE="docker compose -f ${SCRIPT_DIR}/docker-compose.yml --env-file ${SCRIPT_DIR}/.env"
 
-# ── Build domain flags ────────────────────────────────────────────────────────
 DOMAINS=""
 [ -n "$JELLYFIN_DOMAIN" ]    && DOMAINS="$DOMAINS -d $JELLYFIN_DOMAIN"
 [ -n "$QBIT_DOMAIN" ]        && DOMAINS="$DOMAINS -d $QBIT_DOMAIN"
 [ -n "$FILEBROWSER_DOMAIN" ] && DOMAINS="$DOMAINS -d $FILEBROWSER_DOMAIN"
 
-# ── Stop Nginx to free port 80 for certbot standalone ────────────────────────
 echo -e "\n${YELLOW}[1/4] Stopping Nginx to free port 80...${NC}"
 $COMPOSE stop nginx 2>/dev/null || true
 echo -e "${GREEN}✓ Nginx stopped${NC}"
 
-# ── Issue certificates (standalone — no webroot/nginx needed) ─────────────────
 echo -e "\n${YELLOW}[2/4] Issuing SSL certificates (standalone)...${NC}"
 docker run --rm \
     -p 80:80 \
@@ -61,7 +58,6 @@ docker run --rm \
 
 echo -e "${GREEN}✓ Certificates issued${NC}"
 
-# ── Write per-service Nginx HTTPS virtual hosts ───────────────────────────────
 echo -e "\n${YELLOW}[3/4] Writing Nginx virtual hosts...${NC}"
 
 write_vhost() {
@@ -100,7 +96,6 @@ EOF
 [ -n "$FILEBROWSER_DOMAIN" ] && write_vhost "$FILEBROWSER_DOMAIN" "http://filebrowser:80" \
     "\n    client_max_body_size 0;"
 
-# ── Start Nginx back up ───────────────────────────────────────────────────────
 echo -e "\n${YELLOW}[4/4] Starting Nginx with SSL...${NC}"
 $COMPOSE up -d nginx
 echo -e "${GREEN}✓ Nginx started${NC}"

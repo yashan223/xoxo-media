@@ -18,7 +18,6 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-# ── Install Docker ────────────────────────────────────────────────────────────
 echo -e "\n${YELLOW}[1/4] Checking Docker...${NC}"
 if ! command -v docker &>/dev/null; then
     echo -e "${YELLOW}Installing Docker...${NC}"
@@ -35,7 +34,6 @@ if ! docker compose version &>/dev/null; then
     apt-get install -y docker-compose-plugin
 fi
 
-# ── Load .env ─────────────────────────────────────────────────────────────────
 echo -e "\n${YELLOW}[2/4] Loading configuration...${NC}"
 if [ ! -f "${SCRIPT_DIR}/.env" ]; then
     echo -e "${RED}.env file not found in ${SCRIPT_DIR}${NC}"
@@ -43,7 +41,6 @@ if [ ! -f "${SCRIPT_DIR}/.env" ]; then
 fi
 set -a; source "${SCRIPT_DIR}/.env"; set +a
 
-# ── Create media directories ──────────────────────────────────────────────────
 echo -e "\n${YELLOW}[3/4] Creating media directories...${NC}"
 mkdir -p "${MEDIA_DIR}/downloads"
 mkdir -p "${MEDIA_DIR}/movies"
@@ -53,7 +50,6 @@ chown -R ${PUID}:${PGID} "${MEDIA_DIR}"
 chmod -R 775 "${MEDIA_DIR}"
 echo -e "${GREEN}✓ Directories created at ${MEDIA_DIR}${NC}"
 
-# ── Spin up containers ────────────────────────────────────────────────────────
 echo -e "\n${YELLOW}[4/4] Starting containers...${NC}"
 docker compose -f "${SCRIPT_DIR}/docker-compose.yml" --env-file "${SCRIPT_DIR}/.env" up -d
 

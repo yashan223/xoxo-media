@@ -1,6 +1,5 @@
 services:
 
-  # ── Jellyfin ────────────────────────────────────────────────────────────────
   jellyfin:
     image: jellyfin/jellyfin:latest
     container_name: jellyfin
@@ -16,11 +15,10 @@ services:
       - jellyfin-cache:/cache
       - ${MEDIA_DIR}:/media
     devices:
-      - /dev/dri:/dev/dri   # optional hardware transcoding (remove if not needed)
+      - /dev/dri:/dev/dri
     networks:
       - media-net
 
-  # ── qBittorrent ─────────────────────────────────────────────────────────────
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
     container_name: qbittorrent
@@ -40,7 +38,6 @@ services:
     networks:
       - media-net
 
-  # ── FileBrowser ─────────────────────────────────────────────────────────────
   filebrowser:
     image: filebrowser/filebrowser:latest
     container_name: filebrowser
@@ -56,7 +53,6 @@ services:
     networks:
       - media-net
 
-  # ── Nginx (reverse proxy + SSL) ─────────────────────────────────────────────
   nginx:
     image: nginx:alpine
     container_name: nginx
@@ -67,7 +63,6 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx-confd:/etc/nginx/conf.d:ro
-      - certbot-webroot:/var/www/certbot:ro
       - certbot-certs:/etc/letsencrypt:ro
     depends_on:
       - jellyfin
@@ -76,16 +71,14 @@ services:
     networks:
       - media-net
 
-  # ── Certbot (SSL certificate management) ────────────────────────────────────
   certbot:
     image: certbot/certbot:latest
     container_name: certbot
     volumes:
-      - certbot-webroot:/var/www/certbot
       - certbot-certs:/etc/letsencrypt
     entrypoint: >
       sh -c "trap exit TERM; while :; do
-        certbot renew --webroot -w /var/www/certbot --quiet;
+        certbot renew --standalone --quiet;
         sleep 12h & wait $${!};
       done"
     networks:
@@ -101,5 +94,4 @@ volumes:
   qbit-config:
   filebrowser-db:
   filebrowser-config:
-  certbot-webroot:
   certbot-certs:
