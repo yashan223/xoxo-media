@@ -92,6 +92,9 @@ else
 fi
 
 usermod -a -G ${MEDIA_GROUP} jellyfin
+if [ -f /etc/jellyfin/system.xml ]; then
+    sed -i "s/<HttpServerPortNumber>8096<\/HttpServerPortNumber>/<HttpServerPortNumber>${JELLYFIN_PORT}<\/HttpServerPortNumber>/g" /etc/jellyfin/system.xml
+fi
 systemctl restart jellyfin
 
 chown -R ${MEDIA_USER}:${MEDIA_GROUP} "${MEDIA_DIR}"
