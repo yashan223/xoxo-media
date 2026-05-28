@@ -103,9 +103,15 @@ EOF
 
 [ -n "$JELLYFIN_DOMAIN" ]    && write_vhost "$JELLYFIN_DOMAIN"    "http://jellyfin:8096"  ""
 [ -n "$QBIT_DOMAIN" ]        && write_vhost "$QBIT_DOMAIN"        "http://qbittorrent:8080" \
-    "\n    proxy_cookie_path / \"/; Secure\";\n    proxy_hide_header Referer;\n    proxy_hide_header Origin;\n    proxy_set_header Referer '';\n    proxy_set_header Origin '';"
+    "
+    proxy_cookie_path / \"/; Secure\";
+    proxy_hide_header Referer;
+    proxy_hide_header Origin;
+    proxy_set_header Referer '';
+    proxy_set_header Origin '';"
 [ -n "$FILEBROWSER_DOMAIN" ] && write_vhost "$FILEBROWSER_DOMAIN" "http://filebrowser:80" \
-    "\n    client_max_body_size 0;"
+    "
+    client_max_body_size 0;"
 
 echo -e "\n${YELLOW}[4/4] Starting Nginx with SSL...${NC}"
 $COMPOSE up -d nginx
