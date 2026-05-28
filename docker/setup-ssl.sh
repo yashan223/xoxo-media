@@ -62,6 +62,15 @@ echo -e "${GREEN}✓ Certificates issued${NC}"
 
 echo -e "\n${YELLOW}[3/4] Writing Nginx virtual hosts...${NC}"
 
+CERT_DOMAIN=""
+if [ -n "$JELLYFIN_DOMAIN" ]; then
+    CERT_DOMAIN="$JELLYFIN_DOMAIN"
+elif [ -n "$QBIT_DOMAIN" ]; then
+    CERT_DOMAIN="$QBIT_DOMAIN"
+elif [ -n "$FILEBROWSER_DOMAIN" ]; then
+    CERT_DOMAIN="$FILEBROWSER_DOMAIN"
+fi
+
 write_vhost() {
     local domain="$1"
     local upstream="$2"
@@ -71,8 +80,8 @@ server {
     listen 443 ssl;
     server_name ${domain};
 
-    ssl_certificate     /etc/letsencrypt/live/${domain}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${domain}/privkey.pem;
+    ssl_certificate     /etc/letsencrypt/live/${CERT_DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${CERT_DOMAIN}/privkey.pem;
     ssl_protocols       TLSv1.2 TLSv1.3;
     ssl_ciphers         HIGH:!aNULL:!MD5;
 ${extra}
